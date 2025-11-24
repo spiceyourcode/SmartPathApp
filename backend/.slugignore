@@ -1,0 +1,80 @@
+# Files and directories to ignore during Heroku slug compilation
+# This reduces slug size and speeds up deployment
+
+# Documentation
+*.md
+README
+docs/
+*.txt
+!requirements.txt
+!runtime.txt
+!Procfile
+
+# Test files
+test_*.py
+*_test.py
+tests/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Development files
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker (if using Heroku, not Docker)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# SQLite databases (production uses Postgres)
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Coverage reports
+.coverage
+htmlcov/
+*.cover
+
+# Postman collections (optional - keep if you want them in production)
+postman_collection.json
+
+# SQL schema files (migrations handle this)
+*.sql
+!alembic/
+
+# Uploads (these should be in S3 or similar in production)
+uploads/*
+!uploads/.gitkeep
+

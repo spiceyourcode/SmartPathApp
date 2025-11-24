@@ -1,0 +1,853 @@
+{
+  "info": {
+    "name": "SmartPath API",
+    "description": "Complete API collection for SmartPath backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "last_report_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"securepass123\",\n  \"full_name\": \"John Doe\",\n  \"user_type\": \"student\",\n  \"grade_level\": 10,\n  \"curriculum_type\": \"CBC\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"token\", jsonData.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"password\": \"securepass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Upload Report (File)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "term",
+                  "value": "Term 1",
+                  "type": "text"
+                },
+                {
+                  "key": "year",
+                  "value": "2024",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/reports/upload",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "upload"]
+            }
+          }
+        },
+        {
+          "name": "Upload Report (JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"term\": \"Term 1\",\n  \"year\": 2024,\n  \"report_date\": \"2024-03-15T00:00:00\",\n  \"grades_json\": {\n    \"Mathematics\": \"A\",\n    \"English\": \"B+\",\n    \"Physics\": \"B\",\n    \"Chemistry\": \"A-\",\n    \"Biology\": \"B+\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reports/upload-json",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "upload-json"]
+            }
+          }
+        },
+        {
+          "name": "Get Report History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reports/history?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "history"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Analyze Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"report_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reports/analyze?report_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "analyze"],
+              "query": [
+                {
+                  "key": "report_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "OCR Preview (No Save)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has required OCR fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('extracted_text');",
+                  "    pm.expect(jsonData).to.have.property('grades');",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});",
+                  "",
+                  "pm.test(\"Grades is an object\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.grades).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Upload PDF, PNG, or JPG report card"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/reports/ocr-preview",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "ocr-preview"]
+            },
+            "description": "Preview OCR extraction without saving the report. Useful for testing OCR accuracy."
+          }
+        },
+        {
+          "name": "Upload Report with OCR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Report created successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('report_id');",
+                  "    pm.expect(jsonData).to.have.property('grades_json');",
+                  "    pm.collectionVariables.set('last_report_id', jsonData.report_id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Report card file (PDF, PNG, or JPG)"
+                },
+                {
+                  "key": "term",
+                  "value": "Term 1",
+                  "type": "text"
+                },
+                {
+                  "key": "year",
+                  "value": "2024",
+                  "type": "text"
+                },
+                {
+                  "key": "report_date",
+                  "value": "2024-03-15T00:00:00Z",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/reports/upload",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "upload"]
+            },
+            "description": "Upload report card with automatic OCR grade extraction"
+          }
+        },
+        {
+          "name": "Delete Report",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Report deleted successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reports/1",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "1"]
+            },
+            "description": "Delete a report and its associated file"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Performance",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/performance/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["performance", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get Trends",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/performance/trends",
+              "host": ["{{base_url}}"],
+              "path": ["performance", "trends"]
+            }
+          }
+        },
+        {
+          "name": "Get Predictions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/performance/predictions",
+              "host": ["{{base_url}}"],
+              "path": ["performance", "predictions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Flashcards",
+      "item": [
+        {
+          "name": "Generate Flashcards",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Mathematics\",\n  \"topic\": \"Algebra\",\n  \"count\": 5,\n  \"grade_level\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/flashcards/generate",
+              "host": ["{{base_url}}"],
+              "path": ["flashcards", "generate"]
+            }
+          }
+        },
+        {
+          "name": "List Flashcards",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/flashcards/list?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["flashcards", "list"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Review Flashcard",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correct\": true,\n  \"user_answer\": \"The answer is...\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/flashcards/1/review",
+              "host": ["{{base_url}}"],
+              "path": ["flashcards", "1", "review"]
+            }
+          }
+        },
+        {
+          "name": "Evaluate Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_answer\": \"My answer here\",\n  \"card_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/flashcards/1/evaluate",
+              "host": ["{{base_url}}"],
+              "path": ["flashcards", "1", "evaluate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Career",
+      "item": [
+        {
+          "name": "Get Recommendations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/career/recommendations",
+              "host": ["{{base_url}}"],
+              "path": ["career", "recommendations"]
+            }
+          }
+        },
+        {
+          "name": "Career Quiz",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interests\": [\"technology\", \"problem_solving\", \"innovation\"],\n  \"preferred_subjects\": [\"Mathematics\", \"English\", \"Biology\"],\n  \"career_goals\": \"I want to help my community and solve practical problems.\",\n  \"work_environment\": \"Office-based work\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/career/quiz",
+              "host": ["{{base_url}}"],
+              "path": ["career", "quiz"]
+            }
+          }
+        },
+        {
+          "name": "Career Quiz (Safe Example)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"interests\": [\"technology\", \"teaching\", \"nature\"],\n  \"preferred_subjects\": [\"Mathematics\", \"Physics\", \"Geography\"],\n  \"career_goals\": \"Find a meaningful and practical career in Kenya.\",\n  \"work_environment\": \"Office-based work\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/career/quiz",
+              "host": ["{{base_url}}"],
+              "path": ["career", "quiz"]
+            },
+            "description": "Uses neutral interests and goals to avoid triggering safety filters."
+          }
+        },
+        {
+          "name": "Get Career Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/career/1/details",
+              "host": ["{{base_url}}"],
+              "path": ["career", "1", "details"]
+            }
+          }
+        },
+        {
+          "name": "Test Career Endpoints (Mock Data)",
+          "item": [
+            {
+              "name": "Mock Career Recommendations",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/career/recommendations",
+                  "host": ["{{base_url}}"],
+                  "path": ["career", "recommendations"]
+                },
+                "description": "Test endpoint that returns mock career recommendations data for testing purposes"
+              }
+            },
+            {
+              "name": "Mock Career Quiz Response",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"interests\": [\"technology\", \"data_analysis\", \"innovation\"]\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/career/quiz",
+                  "host": ["{{base_url}}"],
+                  "path": ["career", "quiz"]
+                },
+                "description": "Test career quiz with mock interests to generate recommendations"
+              }
+            },
+            {
+              "name": "Mock Career Details",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/career/1/details",
+                  "host": ["{{base_url}}"],
+                  "path": ["career", "1", "details"]
+                },
+                "description": "Test getting detailed information for a specific career recommendation"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Study Plans",
+      "item": [
+        {
+          "name": "Generate Study Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjects\": [\"Mathematics\", \"Physics\"],\n  \"available_hours_per_day\": 3.0,\n  \"exam_date\": \"2024-12-15T00:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/study-plans/generate",
+              "host": ["{{base_url}}"],
+              "path": ["study-plans", "generate"]
+            }
+          }
+        },
+        {
+          "name": "Get Active Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/study-plans/active",
+              "host": ["{{base_url}}"],
+              "path": ["study-plans", "active"]
+            }
+          }
+        },
+        {
+          "name": "Update Study Plan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true,\n  \"completed_topics\": [\"Algebra\", \"Calculus\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/study-plans/1/update",
+              "host": ["{{base_url}}"],
+              "path": ["study-plans", "1", "update"]
+            }
+          }
+        },
+        {
+          "name": "Log Study Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Mathematics\",\n  \"duration_minutes\": 60,\n  \"completed\": true,\n  \"topics_covered\": [\"Algebra\", \"Calculus\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/study-plans/1/log-session",
+              "host": ["{{base_url}}"],
+              "path": ["study-plans", "1", "log-session"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Insights",
+      "item": [
+        {
+          "name": "Get Feedback",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/insights/feedback",
+              "host": ["{{base_url}}"],
+              "path": ["insights", "feedback"]
+            }
+          }
+        },
+        {
+          "name": "Get Learning Tips",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/insights/learning-tips?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["insights", "learning-tips"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Academic Analysis",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/insights/academic-analysis",
+              "host": ["{{base_url}}"],
+              "path": ["insights", "academic-analysis"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
