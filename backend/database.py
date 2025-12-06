@@ -19,9 +19,19 @@ from config import settings
 # Database engine - Use DATABASE_URL (Render Postgres or local)
 # Normalize postgres:// -> postgresql:// for compatibility
 database_url = settings.database_url_fixed if hasattr(settings, 'database_url_fixed') else settings.DATABASE_URL
-# if settings.SUPABASE_DB_URL:
-    # Only use Supabase if explicitly configured
-    # database_url = settings.SUPABASE_DB_URL
+
+# Determine if we need SSL (only for remote databases like Render)
+# Only require SSL if connecting to Render or other remote databases, not localhost
+is_remote_db = "render.com" in database_url or (not ("localhost" in database_url or "127.0.0.1" in database_url))
+
+# Build connect_args conditionally
+connect_args = {
+    "options": "-c timezone=utc"  # Set timezone to UTC
+}
+# Only require SSL for remote databases (Render Postgres)
+if is_remote_db:
+    connect_args["sslmode"] = "require"
+
 engine = create_engine(
     database_url,
     pool_size=settings.DB_POOL_SIZE,
@@ -29,10 +39,7 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_recycle=3600,  # Recycle connections after 1 hour
     echo=settings.DEBUG,
-    connect_args={
-        "options": "-c timezone=utc",  # Set timezone to UTC
-        "sslmode": "require"  # Require SSL for Render Postgres
-    }
+    connect_args=connect_args
 )
 
 # Session factory

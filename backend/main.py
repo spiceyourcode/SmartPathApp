@@ -126,19 +126,23 @@ async def startup_event():
     try:
         init_db()
         logger.info("✅ Database connection successful!")
-        logger.info(f"🚀 SmartPath API v{settings.APP_VERSION} started")
-        logger.info(f"📍 Environment: {settings.ENVIRONMENT}")
-        logger.info(f"🔧 Debug mode: {settings.DEBUG}")
-        
-        # Create uploads directory if it doesn't exist
-        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-        logger.info(f"📁 Upload directory: {settings.UPLOAD_DIR}")
-        
     except Exception as e:
         logger.error(f"⚠️  Database initialization error: {e}", exc_info=True)
         if settings.is_production:
             # In production, fail fast if database is not available
             raise
+        else:
+            # In development, log warning but continue (allows testing without DB)
+            logger.warning("⚠️  Server will start but database features may not work.")
+            logger.warning("⚠️  Make sure PostgreSQL is running and DATABASE_URL is correct.")
+    
+    logger.info(f"🚀 SmartPath API v{settings.APP_VERSION} started")
+    logger.info(f"📍 Environment: {settings.ENVIRONMENT}")
+    logger.info(f"🔧 Debug mode: {settings.DEBUG}")
+    
+    # Create uploads directory if it doesn't exist
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    logger.info(f"📁 Upload directory: {settings.UPLOAD_DIR}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
