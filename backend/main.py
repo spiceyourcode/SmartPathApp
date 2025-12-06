@@ -127,10 +127,6 @@ async def startup_event():
 async def shutdown_event():
     """Cleanup on application shutdown."""
     logger.info("👋 SmartPath API shutting down")
-        print("⚠️  Server will start but database features may not work.")
-        print("⚠️  Make sure PostgreSQL is running and DATABASE_URL is correct.")
-    # Create upload directory if it doesn't exist
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
 
 # ==================== HEALTH CHECK ====================
