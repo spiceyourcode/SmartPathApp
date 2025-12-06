@@ -78,7 +78,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # CORS middleware - Must be added before other middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods including OPTIONS
     allow_headers=["*"],  # Allow all headers for preflight

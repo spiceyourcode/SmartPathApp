@@ -83,12 +83,12 @@ class Settings(BaseSettings):
     # CORS - Production should restrict origins
     # In production, set CORS_ORIGINS env var with comma-separated list
     # Render frontend URLs should be added via environment variable
-    CORS_ORIGINS: List[str] = []
+    # Store as string to avoid JSON parsing issues, parse in property
+    CORS_ORIGINS: str = ""
     
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        """Parse CORS_ORIGINS from comma-separated string or list."""
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """Get CORS origins as a list, parsing from comma-separated string."""
         default_origins = [
             "http://localhost:3000",
             "http://localhost:5173",
@@ -100,39 +100,26 @@ class Settings(BaseSettings):
             "http://127.0.0.1:8080",  # Vite dev server alternative port
         ]
         
-        # If it's already a list, return it
-        if isinstance(v, list):
-            return v
+        if not self.CORS_ORIGINS or self.CORS_ORIGINS.strip() == "":
+            return default_origins
         
-        # If it's a string (from env var), parse it
-        if isinstance(v, str):
-            if not v or v.strip() == "":
-                return default_origins
-            # Split by comma and add to defaults
-            additional_origins = [origin.strip() for origin in v.split(",") if origin.strip()]
-            return default_origins + additional_origins
-        
-        # If None or empty, return defaults
-        return default_origins
+        # Split by comma and add to defaults
+        additional_origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        return default_origins + additional_origins
     
     # Environment
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")  # development, staging, production
     
     # Security headers
     ENABLE_SECURITY_HEADERS: bool = True
-    ALLOWED_HOSTS: List[str] = []
+    ALLOWED_HOSTS: str = ""
     
-    @field_validator("ALLOWED_HOSTS", mode="before")
-    @classmethod
-    def parse_allowed_hosts(cls, v):
-        """Parse ALLOWED_HOSTS from comma-separated string or list."""
-        if isinstance(v, list):
-            return v
-        if isinstance(v, str):
-            if not v or v.strip() == "":
-                return []
-            return [host.strip() for host in v.split(",") if host.strip()]
-        return []
+    @property
+    def allowed_hosts_list(self) -> List[str]:
+        """Get allowed hosts as a list, parsing from comma-separated string."""
+        if not self.ALLOWED_HOSTS or self.ALLOWED_HOSTS.strip() == "":
+            return []
+        return [host.strip() for host in self.ALLOWED_HOSTS.split(",") if host.strip()]
     
     @property
     def is_production(self) -> bool:
