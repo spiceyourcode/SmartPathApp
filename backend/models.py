@@ -86,6 +86,15 @@ class UserProfile(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UserProfileUpdate(BaseModel):
+    """User profile update request model."""
+    full_name: Optional[str] = Field(None, min_length=2, max_length=255)
+    phone_number: Optional[str] = None
+    school_name: Optional[str] = None
+    grade_level: Optional[int] = Field(None, ge=7, le=12)
+    curriculum_type: Optional[CurriculumType] = None
+
+
 # ==================== REPORT MODELS ====================
 
 class ReportUpload(BaseModel):

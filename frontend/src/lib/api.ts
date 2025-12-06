@@ -262,7 +262,26 @@ export const authApi = {
     user_type: string;
     grade_level?: number;
     curriculum_type: string;
+    phone_number?: string;
+    school_name?: string;
   }>("/auth/profile"),
+
+  updateProfile: (data: {
+    full_name?: string;
+    phone_number?: string;
+    school_name?: string;
+    grade_level?: number;
+    curriculum_type?: string;
+  }) => apiClient.put<{
+    user_id: number;
+    email: string;
+    full_name: string;
+    user_type: string;
+    grade_level?: number;
+    curriculum_type: string;
+    phone_number?: string;
+    school_name?: string;
+  }>("/auth/profile", data),
 };
 
 export const reportsApi = {

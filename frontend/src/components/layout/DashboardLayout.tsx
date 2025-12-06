@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { getCurrentUser, logout } from "@/lib/auth";
 import {
   LayoutDashboard,
   FileText,
@@ -82,7 +84,37 @@ const Sidebar = () => {
   );
 };
 
+/**
+ * Extract initials from a full name
+ */
+const getInitials = (name: string): string => {
+  if (!name) return "U";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+  const navigate = useNavigate();
+  
+  // Fetch current user data
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: getCurrentUser,
+    retry: 1,
+  });
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const userInitials = user ? getInitials(user.full_name) : "U";
+  const userName = user?.full_name || "User";
+  const userEmail = user?.email || "";
+
   return (
     <div className="min-h-screen w-full flex bg-background">
       {/* Desktop Sidebar */}
@@ -121,7 +153,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar>
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    JD
+                    {isLoading ? "..." : userInitials}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -129,16 +161,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <DropdownMenuContent className="w-56" align="end">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-muted-foreground">student@example.com</p>
+                  <p className="text-sm font-medium">{userName}</p>
+                  <p className="text-xs text-muted-foreground">{userEmail}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/settings">Settings</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/login">Sign out</Link>
+              <DropdownMenuItem onClick={handleLogout}>
+                Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

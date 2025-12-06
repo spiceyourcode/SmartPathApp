@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 from models import (
-    UserRegister, UserLogin, Token, UserProfile,
+    UserRegister, UserLogin, Token, UserProfile, UserProfileUpdate,
     ReportUpload, ReportResponse, ReportAnalysis,
     PerformanceDashboard, GradeTrend, PerformancePrediction,
     FlashcardGenerate, FlashcardResponse, FlashcardReviewRequest,
@@ -221,6 +221,31 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
 @app.get(f"{settings.API_V1_PREFIX}/auth/profile", response_model=UserProfile)
 async def get_profile(current_user: User = Depends(get_current_active_user)):
     """Get current user's profile."""
+    return UserProfile.model_validate(current_user)
+
+
+@app.put(f"{settings.API_V1_PREFIX}/auth/profile", response_model=UserProfile)
+async def update_profile(
+    profile_update: UserProfileUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update current user's profile."""
+    # Update only provided fields
+    if profile_update.full_name is not None:
+        current_user.full_name = profile_update.full_name
+    if profile_update.phone_number is not None:
+        current_user.phone_number = profile_update.phone_number
+    if profile_update.school_name is not None:
+        current_user.school_name = profile_update.school_name
+    if profile_update.grade_level is not None:
+        current_user.grade_level = profile_update.grade_level
+    if profile_update.curriculum_type is not None:
+        current_user.curriculum_type = profile_update.curriculum_type.value
+    
+    db.commit()
+    db.refresh(current_user)
+    
     return UserProfile.model_validate(current_user)
 
 

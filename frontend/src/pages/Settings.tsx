@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,17 +9,40 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { User, Bell, Lock, Trash2 } from "lucide-react";
+import { User, Bell, Lock, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authApi } from "@/lib/api";
 
 const Settings = () => {
   const { toast } = useToast();
-  const [fullName, setFullName] = useState("John Doe");
-  const [email, setEmail] = useState("john.doe@example.com");
-  const [phone, setPhone] = useState("+254 700 000 000");
-  const [school, setSchool] = useState("Nairobi High School");
-  const [gradeLevel, setGradeLevel] = useState("11");
+  const queryClient = useQueryClient();
+  
+  // Fetch current user profile
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: authApi.getProfile,
+    retry: 1,
+  });
+
+  // Initialize form state with user data
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [school, setSchool] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
   const [curriculum, setCurriculum] = useState("cbc");
+
+  // Update form when user data loads
+  useEffect(() => {
+    if (user) {
+      setFullName(user.full_name || "");
+      setEmail(user.email || "");
+      setPhone(user.phone_number || "");
+      setSchool(user.school_name || "");
+      setGradeLevel(user.grade_level?.toString() || "");
+      setCurriculum(user.curriculum_type?.toLowerCase() || "cbc");
+    }
+  }, [user]);
 
   // Notification settings
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -26,10 +50,34 @@ const Settings = () => {
   const [insightNotifications, setInsightNotifications] = useState(true);
   const [studyReminders, setStudyReminders] = useState(true);
 
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: authApi.updateProfile,
+    onSuccess: (data) => {
+      // Invalidate and refetch user data
+      queryClient.setQueryData(["currentUser"], data);
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been saved successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error?.message || "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSaveProfile = () => {
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been saved successfully.",
+    updateProfileMutation.mutate({
+      full_name: fullName || undefined,
+      phone_number: phone || undefined,
+      school_name: school || undefined,
+      grade_level: gradeLevel ? parseInt(gradeLevel) : undefined,
+      curriculum_type: curriculum.toUpperCase() === "8-4-4" ? "8-4-4" : "CBC",
     });
   };
 
@@ -97,8 +145,12 @@ const Settings = () => {
                   <Input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    disabled
+                    className="bg-muted cursor-not-allowed"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Email cannot be changed
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -150,8 +202,19 @@ const Settings = () => {
                   </div>
                 </div>
 
-                <Button onClick={handleSaveProfile} className="w-full">
-                  Save Changes
+                <Button 
+                  onClick={handleSaveProfile} 
+                  className="w-full"
+                  disabled={updateProfileMutation.isPending || isLoading}
+                >
+                  {updateProfileMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </Button>
               </CardContent>
             </Card>
