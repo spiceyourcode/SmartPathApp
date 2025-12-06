@@ -34,7 +34,22 @@ const GenerateStudyPlan = () => {
   const [examDate, setExamDate] = useState<Date>();
   const [focusAreas, setFocusAreas] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
-  const [previewPlan, setPreviewPlan] = useState<any>(null);
+  const [previewPlan, setPreviewPlan] = useState<{
+    plan_id: number;
+    subjects: string[];
+    hoursPerDay: number;
+    examDate: Date;
+    weeklySchedule: Array<{
+      day?: string;
+      subjects?: string[];
+      subject?: string;
+      duration?: number;
+      duration_minutes?: number;
+      focus?: string;
+    }>;
+    focusAreas: Record<string, string>;
+    plans: unknown[];
+  } | null>(null);
 
   const toggleSubject = (subject: string) => {
     setSelectedSubjects((prev) =>
@@ -66,25 +81,53 @@ const GenerateStudyPlan = () => {
     setIsGenerating(true);
 
     try {
-      const plans = await studyPlansApi.generate({
-        subjects: selectedSubjects,
-        available_hours_per_day: hoursPerDay[0],
-        exam_date: examDate!.toISOString(),
+      toast({
+        title: "Generating Study Plan...",
+        description: "AI is creating your personalized study schedule. This may take a moment.",
       });
 
-      if (plans && plans.length > 0) {
-        setPreviewPlan(plans[0]);
+      const plans = await Promise.race([
+        studyPlansApi.generate({
+          subjects: selectedSubjects,
+          available_hours_per_day: hoursPerDay[0],
+          exam_date: examDate!.toISOString(),
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Request timeout. Please try again.")), 120000)
+        ) as Promise<never>,
+      ]);
+
+      if (plans && Array.isArray(plans) && plans.length > 0) {
+        // Transform the API response to match preview format
+        const firstPlan = plans[0];
+        const transformedPlan = {
+          plan_id: firstPlan.plan_id,
+          subjects: selectedSubjects,
+          hoursPerDay: hoursPerDay[0],
+          examDate: new Date(examDate!),
+          weeklySchedule: firstPlan.weekly_schedule || generateWeeklySchedule(),
+          focusAreas: plans.reduce((acc: Record<string, string>, plan: { subject?: string; focus_area?: string }) => {
+            if (plan.focus_area && plan.subject) {
+              acc[plan.subject] = plan.focus_area;
+            }
+            return acc;
+          }, {}),
+          plans: plans, // Store all plans for saving
+        };
+        
+        setPreviewPlan(transformedPlan);
         toast({
           title: "Study Plan Generated!",
-          description: "Your personalized study plan is ready.",
+          description: `Successfully created ${plans.length} study plan${plans.length > 1 ? 's' : ''} for your subjects.`,
         });
       } else {
-        throw new Error("No study plan generated");
+        throw new Error("No study plan generated. Please try again.");
       }
     } catch (error) {
+      console.error("Study plan generation error:", error);
       toast({
         title: "Generation failed",
-        description: error instanceof Error ? error.message : "Failed to generate study plan",
+        description: error instanceof Error ? error.message : "Failed to generate study plan. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -101,15 +144,39 @@ const GenerateStudyPlan = () => {
     }));
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Study Plan Saved!",
-      description: "Your study plan has been created successfully.",
-    });
+  const handleSave = async () => {
+    if (!previewPlan || !previewPlan.plans) {
+      toast({
+        title: "No plan to save",
+        description: "Please generate a study plan first.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    setTimeout(() => {
-      navigate("/study-plans");
-    }, 1000);
+    try {
+      toast({
+        title: "Saving Study Plan...",
+        description: "Your study plan is being saved.",
+      });
+
+      // Plans are already saved by the backend when generated
+      // Just navigate to the study plans page
+      toast({
+        title: "Study Plan Saved!",
+        description: "Your study plan has been created successfully.",
+      });
+
+      setTimeout(() => {
+        navigate("/study-plans");
+      }, 1000);
+    } catch (error) {
+      toast({
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Failed to save study plan.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -251,7 +318,10 @@ const GenerateStudyPlan = () => {
               size="lg"
             >
               {isGenerating ? (
-                <>Generating Your Study Plan...</>
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Generating Your Study Plan...
+                </>
               ) : (
                 <>
                   <Sparkles className="w-5 h-5 mr-2" />
@@ -259,6 +329,23 @@ const GenerateStudyPlan = () => {
                 </>
               )}
             </Button>
+            
+            {isGenerating && (
+              <Card className="border-primary/50 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <div className="flex-1">
+                      <p className="font-medium">AI is working on your study plan...</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Analyzing your subjects, creating a personalized schedule, and optimizing your study time.
+                        This may take 30-60 seconds.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </>
         ) : (
           <>
@@ -274,16 +361,16 @@ const GenerateStudyPlan = () => {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Subjects</p>
-                    <p className="font-semibold">{previewPlan.subjects.length}</p>
+                    <p className="font-semibold">{previewPlan.subjects?.length || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Daily Hours</p>
-                    <p className="font-semibold">{previewPlan.hoursPerDay}</p>
+                    <p className="font-semibold">{previewPlan.hoursPerDay || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Exam Date</p>
                     <p className="font-semibold">
-                      {format(previewPlan.examDate, "MMM dd, yyyy")}
+                      {previewPlan.examDate ? format(new Date(previewPlan.examDate), "MMM dd, yyyy") : "Not set"}
                     </p>
                   </div>
                 </div>
@@ -293,35 +380,70 @@ const GenerateStudyPlan = () => {
                 <div>
                   <h3 className="font-semibold mb-2">Selected Subjects</h3>
                   <div className="flex flex-wrap gap-2">
-                    {previewPlan.subjects.map((subject: string) => (
+                    {(previewPlan.subjects || []).map((subject: string) => (
                       <Badge key={subject}>{subject}</Badge>
                     ))}
                   </div>
                 </div>
 
+                {previewPlan.focusAreas && Object.keys(previewPlan.focusAreas).length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h3 className="font-semibold mb-2">Focus Areas</h3>
+                      <div className="space-y-2">
+                        {Object.entries(previewPlan.focusAreas).map(([subject, focus]) => (
+                          <div key={subject} className="p-2 rounded-lg bg-muted">
+                            <p className="text-sm font-medium">{subject}</p>
+                            <p className="text-sm text-muted-foreground">{focus}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 <Separator />
 
                 <div>
-                  <h3 className="font-semibold mb-3">Weekly Schedule Sample</h3>
-                  <div className="space-y-2">
-                    {previewPlan.weeklySchedule.slice(0, 3).map((day: any) => (
-                      <div
-                        key={day.day}
-                        className="flex items-center justify-between p-3 rounded-lg border"
-                      >
-                        <span className="font-medium">{day.day}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            {day.subjects.join(", ")}
-                          </span>
-                          <Badge variant="outline">{day.duration}h each</Badge>
+                  <h3 className="font-semibold mb-3">Weekly Schedule</h3>
+                  {previewPlan.weeklySchedule && previewPlan.weeklySchedule.length > 0 ? (
+                    <div className="space-y-2">
+                      {previewPlan.weeklySchedule.slice(0, 5).map((day, index: number) => (
+                        <div
+                          key={day.day || index}
+                          className="flex items-center justify-between p-3 rounded-lg border"
+                        >
+                          <span className="font-medium">{day.day || `Day ${index + 1}`}</span>
+                          <div className="flex items-center gap-2">
+                            {day.subjects && Array.isArray(day.subjects) ? (
+                              <>
+                                <span className="text-sm text-muted-foreground">
+                                  {day.subjects.join(", ")}
+                                </span>
+                                {day.duration && (
+                                  <Badge variant="outline">{day.duration}h</Badge>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">
+                                {day.subject || "Study session"}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    <p className="text-sm text-muted-foreground text-center pt-2">
-                      ...and more
+                      ))}
+                      {previewPlan.weeklySchedule.length > 5 && (
+                        <p className="text-sm text-muted-foreground text-center pt-2">
+                          ...and {previewPlan.weeklySchedule.length - 5} more days
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Weekly schedule will be generated based on your preferences.
                     </p>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

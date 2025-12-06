@@ -713,15 +713,32 @@ async def generate_study_plan(
     db: Session = Depends(get_db)
 ):
     """Generate a personalized study plan."""
-    plans = await StudyPlanService.generate_study_plan(
-        db=db,
-        user_id=current_user.user_id,
-        subjects=request.subjects,
-        available_hours=request.available_hours_per_day,
-        exam_date=request.exam_date
-    )
-    
-    return [StudyPlanResponse.model_validate(plan) for plan in plans]
+    try:
+        logger.info(f"Generating study plan for user {current_user.user_id} with subjects: {request.subjects}")
+        plans = await StudyPlanService.generate_study_plan(
+            db=db,
+            user_id=current_user.user_id,
+            subjects=request.subjects,
+            available_hours=request.available_hours_per_day,
+            exam_date=request.exam_date
+        )
+        
+        if not plans:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to generate study plan. Please try again."
+            )
+        
+        logger.info(f"Successfully generated {len(plans)} study plan(s) for user {current_user.user_id}")
+        return [StudyPlanResponse.model_validate(plan) for plan in plans]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating study plan: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate study plan: {str(e)}"
+        )
 
 
 @app.get(f"{settings.API_V1_PREFIX}/study-plans/active", response_model=List[StudyPlanResponse])

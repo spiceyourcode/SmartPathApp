@@ -612,13 +612,31 @@ Allocate more time to weaker subjects. Include specific topics to focus on."""
         
         try:
             response = await self.generate(prompt, json_mode=True)
-            return json.loads(response)
-        except Exception as e:
-            print(f"Study plan generation error: {e}")
+            if not response:
+                raise ValueError("Empty response from LLM")
+            parsed_response = json.loads(response)
+            if not isinstance(parsed_response, dict):
+                raise ValueError("Invalid response format from LLM")
+            return parsed_response
+        except json.JSONDecodeError as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Study plan JSON decode error: {e}. Response: {response[:200] if response else 'None'}")
+            # Return a basic structure so the plan can still be created
             return {
                 "weekly_schedule": [],
-                "strategies": {},
-                "recommendations": ["Study regularly", "Take breaks", "Review notes"]
+                "strategies": {subject: f"Focus on key concepts and practice regularly" for subject in weak_subjects},
+                "recommendations": ["Study regularly", "Take breaks", "Review notes daily"]
+            }
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Study plan generation error: {e}", exc_info=True)
+            # Return a basic structure so the plan can still be created
+            return {
+                "weekly_schedule": [],
+                "strategies": {subject: f"Focus on key concepts and practice regularly" for subject in weak_subjects},
+                "recommendations": ["Study regularly", "Take breaks", "Review notes daily"]
             }
     
     # ==================== LEARNING STRATEGIES ====================
