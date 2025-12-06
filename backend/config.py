@@ -22,10 +22,9 @@ class Settings(BaseSettings):
     
     # Server
     HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("PORT", "8000"))  # Heroku sets PORT dynamically
+    PORT: int = int(os.getenv("PORT", "8000"))  # Render sets PORT dynamically
     
-    # Database (Local PostgreSQL by default, Supabase optional)
-    # Heroku Postgres automatically sets DATABASE_URL
+    # Database (PostgreSQL - Render Postgres or local)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
         "postgresql://postgres:root@localhost:5432/smartpath"
@@ -34,10 +33,10 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "10"))
     DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "20"))
     
-    # Heroku Postgres fix: postgresql:// -> postgresql://
+    # Database URL normalization - handles postgres:// -> postgresql:// conversion
     @property
     def database_url_fixed(self) -> str:
-        """Fix Heroku DATABASE_URL which uses postgres:// instead of postgresql://"""
+        """Normalize DATABASE_URL to use postgresql:// protocol."""
         url = self.DATABASE_URL
         if url and url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
@@ -82,6 +81,7 @@ class Settings(BaseSettings):
     
     # CORS - Production should restrict origins
     # In production, set CORS_ORIGINS env var with comma-separated list
+    # Render frontend URLs should be added via environment variable
     CORS_ORIGINS: list = [
         "http://localhost:3000",
         "http://localhost:5173",
@@ -96,10 +96,14 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")  # development, staging, production
     
+    # Security headers
+    ENABLE_SECURITY_HEADERS: bool = True
+    ALLOWED_HOSTS: list = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
+    
     @property
     def is_production(self) -> bool:
         """Check if running in production."""
-        return self.ENVIRONMENT.lower() == "production" or not self.DEBUG
+        return self.ENVIRONMENT.lower() == "production" or os.getenv("RENDER") == "true"
     
     # Kenyan Context
     DEFAULT_CURRICULUM: str = "CBC"  # CBC or 8-4-4

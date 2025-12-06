@@ -16,8 +16,8 @@ import enum
 
 from config import settings
 
-# Database engine - Use DATABASE_URL (local by default), Supabase optional
-# Heroku Postgres fix: postgres:// -> postgresql://
+# Database engine - Use DATABASE_URL (Render Postgres or local)
+# Normalize postgres:// -> postgresql:// for compatibility
 database_url = settings.database_url_fixed if hasattr(settings, 'database_url_fixed') else settings.DATABASE_URL
 # if settings.SUPABASE_DB_URL:
     # Only use Supabase if explicitly configured
