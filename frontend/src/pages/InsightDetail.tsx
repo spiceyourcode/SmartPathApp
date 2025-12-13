@@ -27,6 +27,8 @@ interface InsightDetail {
     next_steps?: string[];
     source?: string;
     type?: string;
+    created_by_name?: string;
+    created_by_type?: string;
   };
 }
 
@@ -174,7 +176,7 @@ const InsightDetail = () => {
               </Button>
             </Link>
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <Badge className={getTypeColor(insight.insight_type)} variant="outline">
                   {getTypeLabel(insight.insight_type)}
                 </Badge>
@@ -183,6 +185,12 @@ const InsightDetail = () => {
                 </span>
                 {!insight.is_read && (
                   <Badge className="bg-primary/20 text-primary">New</Badge>
+                )}
+                {insight.metadata_json?.source === "guardian" && (
+                  <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
+                    From {insight.metadata_json?.created_by_type === "teacher" ? "Teacher" : "Parent"}
+                    {insight.metadata_json?.created_by_name && ` (${insight.metadata_json.created_by_name})`}
+                  </Badge>
                 )}
               </div>
               <h1 className="text-3xl font-bold text-foreground">

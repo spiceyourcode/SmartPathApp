@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini")  # gemini
     LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-2.5-flash")  
     LLM_TEMPERATURE: float = 0.7
-    LLM_MAX_TOKENS: int = 2000
+    LLM_MAX_TOKENS: int = 8192
     
     # File Storage
     STORAGE_TYPE: str = os.getenv("STORAGE_TYPE", "local")  # local, s3, supabase

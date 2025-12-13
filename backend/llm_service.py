@@ -282,11 +282,19 @@ Be specific, constructive, and culturally appropriate for Kenyan students."""
             except json.JSONDecodeError:
                 # If response is not valid JSON, try to extract JSON from markdown
                 import re
+                feedback_data = None
+                
+                # Try to find JSON object
                 json_match = re.search(r'\{[\s\S]*\}', response)
                 if json_match:
-                    feedback_data = json.loads(json_match.group())
-                else:
-                    raise ValueError("Could not parse JSON from response")
+                    try:
+                        feedback_data = json.loads(json_match.group())
+                    except json.JSONDecodeError:
+                        pass
+                
+                # If still no data, use empty dict (fallback will handle it)
+                if feedback_data is None:
+                    feedback_data = {}
             
             # Ensure all required fields exist
             return {
@@ -404,47 +412,84 @@ Return your response as a JSON array:"""
         grade_level: int = 10
     ) -> List[Dict[str, Any]]:
         """Generate career recommendations based on subjects and grades."""
-        prompt = f"""As an educational career guidance counselor, suggest 5 suitable career paths for a Kenyan high school student in Grade {grade_level}.
+        # Create compact grades summary
+        grades_summary = ", ".join([f"{s}:{grades.get(s, 'N/A')}" for s in subjects[:6]])
+        interests_str = f" Interests: {', '.join(interests[:3])}" if interests else ""
+        
+        prompt = f"""Suggest 3 careers for a Kenyan Grade {grade_level} student. Grades: {grades_summary}.{interests_str}
 
-Student's Academic Performance:
-{json.dumps({s: grades.get(s, "N/A") for s in subjects}, indent=2)}
+Return JSON array with 3 careers. Each career has: career_path, career_description (1 sentence), suitable_universities (2 names), match_score (0-100), reasoning (1 sentence).
 
-{f"Student's Interests: {', '.join(interests)}" if interests else ""}
+Example format:
+[{{"career_path":"Engineer","career_description":"Designs systems","suitable_universities":["UoN","JKUAT"],"match_score":85,"reasoning":"Strong math skills"}}]
 
-For each career suggestion, provide this information in JSON format:
-{{
-  "career_path": "Career name (e.g., Software Engineer, Doctor, Teacher)",
-  "career_description": "Brief description of what this career involves",
-  "suitable_universities": ["University of Nairobi", "Kenyatta University", "Strathmore University"],
-  "course_requirements": {{"Mathematics": "B", "English": "C+"}},
-  "match_score": 85,
-  "reasoning": "Why this career matches the student's academic strengths",
-  "job_market_outlook": "Employment opportunities and growth in Kenya"
-}}
-
-Guidelines:
-- Focus on positive, educational career guidance
-- Include mainstream professional careers suitable for Kenyan students
-- Base recommendations on academic performance in subjects
-- Include both STEM and non-STEM career options
-- Mention reputable Kenyan universities
-- Keep content appropriate for high school students
-
-Return ONLY a JSON array of exactly 5 career recommendations, sorted by match_score (highest first)."""
+Return ONLY the JSON array, no other text:"""
 
         try:
             response = await self.generate(prompt, json_mode=True)
+            
+            # Clean response - remove markdown code blocks and extra whitespace
+            import re
+            cleaned_response = response.strip()
+            
+            # Remove markdown code blocks (```json ... ``` or ``` ... ```)
+            cleaned_response = re.sub(r'^```(?:json)?\s*\n?', '', cleaned_response)
+            cleaned_response = re.sub(r'\n?```\s*$', '', cleaned_response)
+            cleaned_response = cleaned_response.strip()
+            
             # Parse JSON response
+            data = None
+            parse_error = None
+            
+            # Try direct parsing first
             try:
-                data = json.loads(response)
+                data = json.loads(cleaned_response)
             except json.JSONDecodeError:
-                # Try to extract JSON from response
-                import re
-                json_match = re.search(r'\[[\s\S]*\]', response)
-                if json_match:
-                    data = json.loads(json_match.group())
-                else:
-                    raise ValueError("Could not parse JSON from response")
+                # Try to find JSON array using bracket matching
+                if cleaned_response.strip().startswith('['):
+                    bracket_count = 0
+                    end_pos = 0
+                    in_string = False
+                    escape_next = False
+                    
+                    for i, char in enumerate(cleaned_response):
+                        if escape_next:
+                            escape_next = False
+                            continue
+                        if char == '\\' and in_string:
+                            escape_next = True
+                            continue
+                        if char == '"' and not escape_next:
+                            in_string = not in_string
+                            continue
+                        if in_string:
+                            continue
+                        if char == '[':
+                            bracket_count += 1
+                        elif char == ']':
+                            bracket_count -= 1
+                            if bracket_count == 0:
+                                end_pos = i + 1
+                                break
+                    
+                    if end_pos > 0:
+                        try:
+                            data = json.loads(cleaned_response[:end_pos])
+                        except json.JSONDecodeError:
+                            pass
+                
+                # Fallback: try regex extraction
+                if data is None:
+                    json_match = re.search(r'\[[\s\S]*?\](?=\s*$)', cleaned_response)
+                    if json_match:
+                        try:
+                            data = json.loads(json_match.group())
+                        except json.JSONDecodeError:
+                            pass
+            
+            # If still no data, use empty list (fallback will handle it)
+            if data is None:
+                data = []
 
             if isinstance(data, list):
                 parsed = data
@@ -464,7 +509,7 @@ Return ONLY a JSON array of exactly 5 career recommendations, sorted by match_sc
                         "course_requirements": item.get("course_requirements", {}),
                         "match_score": float(item.get("match_score", 75)),
                         "reasoning": item.get("reasoning", "Based on academic performance"),
-                        "job_market_outlook": item.get("job_market_outlook", "Good employment opportunities")
+                        "job_market_outlook": item.get("job_market_outlook", "Good employment opportunities in Kenya")
                     })
 
             # Ensure we have at least some recommendations

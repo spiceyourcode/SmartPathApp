@@ -182,12 +182,17 @@ const Insights = () => {
                             <Icon className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <Badge className={getTypeColor(insight.insight_type)} variant="outline">
                                 {insight.insight_type || "Insight"}
                               </Badge>
                               {!insight.is_read && (
                                 <Badge className="bg-primary/20 text-primary">New</Badge>
+                              )}
+                              {insight.metadata_json?.source === "guardian" && (
+                                <Badge variant="secondary" className="bg-blue-500/10 text-blue-600">
+                                  From {insight.metadata_json?.created_by_type === "teacher" ? "Teacher" : "Parent"}
+                                </Badge>
                               )}
                             </div>
                             <CardTitle className="text-lg">{insight.title || "Learning Insight"}</CardTitle>
