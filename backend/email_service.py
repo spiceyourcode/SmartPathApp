@@ -1,5 +1,12 @@
-from typing import List, Dict, Any
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from typing import List, Optional
+
+try:
+    from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+except Exception:
+    FastMail = None
+    MessageSchema = None
+    ConnectionConfig = None
+    MessageType = None
 from config import settings
 from pydantic import EmailStr, TypeAdapter
 import logging
@@ -9,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 _email_adapter = TypeAdapter(EmailStr)
 
-def _build_mail_config() -> ConnectionConfig | None:
+def _build_mail_config() -> Optional[object]:
     if not settings.MAIL_ENABLED:
         return None
     mail_from = (settings.MAIL_FROM or "").strip()
@@ -23,6 +30,9 @@ def _build_mail_config() -> ConnectionConfig | None:
         return None
     if not (settings.MAIL_USERNAME and settings.MAIL_PASSWORD and settings.MAIL_SERVER):
         logger.warning("MAIL_ENABLED is true but required mail settings are missing; disabling email.")
+        return None
+    if ConnectionConfig is None:
+        logger.warning("MAIL_ENABLED is true but fastapi_mail is not installed; disabling email.")
         return None
 
     return ConnectionConfig(
@@ -41,7 +51,7 @@ class EmailService:
     def __init__(self):
         conf = _build_mail_config()
         self.enabled = conf is not None
-        self.fastmail = FastMail(conf) if conf else None
+        self.fastmail = FastMail(conf) if (conf and FastMail is not None) else None
 
     async def send_email(
         self, 
@@ -50,7 +60,12 @@ class EmailService:
         body: str
     ):
         """Send a generic email."""
-        if not self.enabled or not self.fastmail:
+        if (
+            not self.enabled
+            or not self.fastmail
+            or MessageSchema is None
+            or MessageType is None
+        ):
             return False
         message = MessageSchema(
             subject=subject,
