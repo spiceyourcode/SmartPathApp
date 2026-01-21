@@ -17,12 +17,30 @@ class UserType(str, Enum):
     PARENT = "parent"
     ADMIN = "admin"
 
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            for member in cls:
+                if member.value == value.lower():
+                    return member
+        return None
+
 
 class CurriculumType(str, Enum):
     CBE = "CBE"
     EIGHT_FOUR_FOUR = "8-4-4"
     KCSE = "kcse"
     IGCSE = "igcse"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            v = value.strip().upper()
+            if v == "CBE": return cls.CBE
+            if v in {"8-4-4", "8 4 4", "844"}: return cls.EIGHT_FOUR_FOUR
+            if v == "KCSE": return cls.KCSE
+            if v == "IGCSE": return cls.IGCSE
+        return None
 
 
 class DifficultyLevel(str, Enum):
@@ -73,6 +91,12 @@ class UserRegister(BaseModel):
             raise ValueError("grade_level is required for students")
         return v
 
+    @validator("user_type", pre=True)
+    def normalize_user_type(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
+
     @validator("curriculum_type", pre=True)
     def normalize_curriculum_type(cls, v):
         if v is None:
@@ -115,7 +139,19 @@ class UserProfile(BaseModel):
     created_at: datetime
     
     model_config = {"from_attributes": True}
+
+    @validator("created_by_type", pre=True)
+    def normalize_created_by_type(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
     
+    @validator("user_type", pre=True)
+    def normalize_user_type(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
+
     @validator("curriculum_type", pre=True)
     def normalize_curriculum_type(cls, v):
         if v is None:
@@ -679,6 +715,12 @@ class InviteCodeResponse(BaseModel):
     
     model_config = {"from_attributes": True}
 
+    @validator("creator_type", pre=True)
+    def normalize_creator_type(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
+
 
 class InviteCodeRedeem(BaseModel):
     """Request to redeem an invite code."""
@@ -718,6 +760,12 @@ class LinkedGuardianResponse(BaseModel):
     relationship_type: str
     linked_at: datetime
 
+    @validator("user_type", pre=True)
+    def normalize_user_type(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
+
 
 class StudentDashboardResponse(BaseModel):
     """Dashboard data for a student (viewed by teacher/parent)."""
@@ -754,6 +802,12 @@ class GuardianInsightResponse(BaseModel):
     is_read: bool
     
     model_config = {"from_attributes": True}
+
+    @validator("created_by_type", pre=True)
+    def normalize_created_by_type(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
 
 
 # ==================== CHAT MODELS ====================
