@@ -222,7 +222,7 @@ class UserProfileUpdate(BaseModel):
 class ReportUpload(BaseModel):
     """Report upload request model."""
     term: str = Field(..., description="Term name (e.g., 'Term 1', 'Term 2')")
-    year: int = Field(..., ge=2020, le=2030)
+    year: int = Field(..., ge=2018, le=2030)
     report_date: datetime
     grades_json: Optional[Dict[str, str]] = Field(None, description="Subject grades as JSON object")
 
