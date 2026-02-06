@@ -199,6 +199,7 @@ class SubjectPerformanceResponse(BaseModel):
     subject: str
     current_grade: Optional[str]
     grade_numeric: Optional[float]
+    gpa: Optional[float] = None
     trend: Optional[str]
     strength_score: float
     weakness_areas: Optional[List[str]]

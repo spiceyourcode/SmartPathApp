@@ -219,6 +219,10 @@ class PerformanceService:
 
         # Get subject performances
         subject_perfs = get_subject_performance(user_id)
+        
+        # Calculate GPA for each subject to ensure 0-4 scale availability
+        for sp in subject_perfs:
+            sp['gpa'] = grade_to_gpa(sp.get('current_grade', 'E'))
 
         strong_subjects = [sp for sp in subject_perfs if sp['strength_score'] >= 70]
         weak_subjects = [sp for sp in subject_perfs if sp['strength_score'] < 60]
